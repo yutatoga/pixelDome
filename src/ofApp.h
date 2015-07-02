@@ -30,6 +30,7 @@ class ofApp : public ofBaseApp{
     void drawPixelDome();
     void drawDebug();
     void imageFilter(ofImage *img, ofImage *filteredImage, float r, float g, float b);
+    void drawDisplayAllVideoGrabber();
     
     //ofxUI
     void exit();
@@ -41,18 +42,19 @@ class ofApp : public ofBaseApp{
     ofFbo fboR, fboG, fboB, fbo;
     ofImage image;
     ofImage imageArrayRGB[3];
-    ofShader shader;
+    ofShader shaderLightLayer, shaderPixelDome;
     int colorSelector;
     
     //ofxUI
     ofxUICanvas *gui;
-    bool toggleDrawR, toggleDrawG, toggleDrawB, toggleDrawDebug, toggleDrawCamera, buttonCameraR, buttonCameraG, buttonCameraB, toggleDrawRGB,toggleProjectionRGB, togglePixelDome;
+    bool toggleDrawR, toggleDrawG, toggleDrawB, toggleDrawDebug, toggleDrawCamera, buttonCameraR, buttonCameraG, buttonCameraB, toggleDrawRGB,toggleProjectionRGB, togglePixelDome, toggleDisplayAllVideoGrabber, changeCameraForVideoGrabberMain, changeCameraForVideoGrabberR, changeCameraForVideoGrabberG, changeCameraForVideoGrabberB;
     float sliderR, sliderG, sliderB;
     
     //camera
     int cameraWidth;
     int cameraHeight;
-    ofVideoGrabber videoGrabber;
+    ofVideoGrabber videoGrabberR, videoGrabberG, videoGrabberB, videoGrabberMain;
+    int deviceIdR, deviceIdG, deviceIdB, deviceIdMain;
     
     //enable projection installation
 //    bool enableProjectionRGB;

@@ -31,7 +31,9 @@ void ofApp::setup(){
     gui = new ofxUICanvas();
     gui->setPosition(10, 20);
     toggleDrawR = true;
-    
+
+    // Light Layer
+    gui->addLabel("Light Layer");
     gui->addToggle("draw R", &toggleDrawR);
     toggleDrawG = true;
     gui->addToggle("draw G", &toggleDrawG);
@@ -48,18 +50,35 @@ void ofApp::setup(){
     gui->addSlider("color B", 0.0, 5.0, &sliderB);
     toggleDrawCamera = false;
     gui->addToggle("draw camera", &toggleDrawCamera);
-    buttonCameraR = false;
-    gui->addButton("camera R", &buttonCameraR);
-    buttonCameraG = false;
-    gui->addButton("camera G", &buttonCameraG);
-    buttonCameraB = false;
-    gui->addButton("camera B", &buttonCameraB);
-    gui->addToggle("draw RGB", &toggleDrawRGB);
+
     toggleDrawRGB = false;
+    gui->addToggle("Light Layer - draw RGB", &toggleDrawRGB);
+    buttonCameraR = false;
+    gui->addButton("Light Layer - camera R", &buttonCameraR);
+    buttonCameraG = false;
+    gui->addButton("Light Layer - camera G", &buttonCameraG);
+    buttonCameraB = false;
+    gui->addButton("Light Layer - camera B", &buttonCameraB);
     toggleProjectionRGB = true;
     gui->addToggle("enableProjectionRGB", &toggleProjectionRGB);
+    
+    // Pixel Dome
+    gui->addSpacer();
+    gui->addLabel("Pixel Dome");
     togglePixelDome = false;
     gui->addToggle("draw pixel dome", &togglePixelDome);
+    toggleDisplayAllVideoGrabber = false;
+    gui->addToggle("videoGrabber RGB", &toggleDisplayAllVideoGrabber);
+    changeCameraForVideoGrabberMain = false;
+    gui->addButton("change camera Main", changeCameraForVideoGrabberMain);
+    changeCameraForVideoGrabberR = false;
+    gui->addButton("change camera R", changeCameraForVideoGrabberR);
+    changeCameraForVideoGrabberG = false;
+    gui->addButton("change camera G", changeCameraForVideoGrabberG);
+    changeCameraForVideoGrabberB = false;
+    gui->addButton("change camera B", changeCameraForVideoGrabberB);
+    
+    // command explanatin
     gui->addSpacer();
     gui->addLabel("press c: hide/show cursor", OFX_UI_FONT_SMALL);
     gui->addLabel("press f: fullscreen", OFX_UI_FONT_SMALL);
@@ -75,13 +94,13 @@ void ofApp::setup(){
     ofLogNotice("shader not found: TARGET_OPENGLES");
 #else
     if(ofIsGLProgrammableRenderer()){
-        shader.load("shadersGL3/shader");
+        shaderLightLayer.load("shadersGL3_lightLayer/shader");
+        shaderPixelDome.load("shadersGL3_pixelDome/shader");
     }else{
         //        shader.load("shadersGL2/shader");
         ofLogNotice("shader not found: shadersGL2");
     }
 #endif
-    
     
     TIME_SAMPLE_SET_FRAMERATE(60.0f);
     //    ofSetVerticalSync(false);
@@ -92,7 +111,7 @@ void ofApp::setup(){
     //camera
     cameraWidth = ofGetWidth();
     cameraHeight = ofGetHeight();
-    vector<ofVideoDevice> devices = videoGrabber.listDevices();
+    vector<ofVideoDevice> devices = videoGrabberMain.listDevices();
     for(int i = 0; i < devices.size(); i++){
         cout << devices[i].id << ": " << devices[i].deviceName;
         if( devices[i].bAvailable ){
@@ -101,9 +120,29 @@ void ofApp::setup(){
             cout << " - unavailable " << endl;
         }
     }
-    videoGrabber.setDeviceID(0);
-    videoGrabber.setDesiredFrameRate(60);
-    videoGrabber.initGrabber(cameraWidth,cameraHeight);
+    
+    // initialize videograbber
+    deviceIdR = 0;
+    deviceIdG = 1;
+    deviceIdB = 2;
+    deviceIdMain = 3;
+    
+    // R
+    videoGrabberR.setDeviceID(deviceIdR);
+    videoGrabberR.setDesiredFrameRate(60);
+    videoGrabberR.initGrabber(cameraWidth, cameraHeight);
+    // G
+    videoGrabberG.setDeviceID(deviceIdG);
+    videoGrabberG.setDesiredFrameRate(60);
+    videoGrabberG.initGrabber(cameraWidth, cameraHeight);
+    // B
+    videoGrabberB.setDeviceID(deviceIdB);
+    videoGrabberB.setDesiredFrameRate(60);
+    videoGrabberB.initGrabber(cameraWidth, cameraHeight);
+    // Main
+    videoGrabberMain.setDeviceID(deviceIdMain);
+    videoGrabberMain.setDesiredFrameRate(60);
+    videoGrabberMain.initGrabber(cameraWidth, cameraHeight);
     
     lastShootingTime = ofGetElapsedTimef();
     flashTime = 0.1;
@@ -111,13 +150,14 @@ void ofApp::setup(){
     projectionColorID = 0;
 }
 
+
 //--------------------------------------------------------------
 void ofApp::update(){
-    //camera
-    videoGrabber.update();
-    if (videoGrabber.isFrameNew()){
-        //update ofImages here
-    }
+    //update videograbber
+    videoGrabberR.update();
+    videoGrabberG.update();
+    videoGrabberB.update();
+    videoGrabberMain.update();
 }
 
 //--------------------------------------------------------------
@@ -154,13 +194,39 @@ void ofApp::draw(){
             drawRGB();
         }
     }
-    if (toggleDrawCamera) videoGrabber.draw((ofGetWidth()-videoGrabber.getWidth())*0.5, (ofGetHeight()-videoGrabber.getHeight())*0.5);
+    if (toggleDrawCamera) videoGrabberMain.draw((ofGetWidth()-videoGrabberMain.getWidth())*0.5, (ofGetHeight()-videoGrabberMain.getHeight())*0.5);
     if (toggleDrawR) drawR();
     if (toggleDrawG) drawG();
     if (toggleDrawB) drawB();
     if (toggleDrawRGB) drawRGB();
     if (togglePixelDome) drawPixelDome();
     if (toggleDrawDebug) drawDebug();
+    if (toggleDisplayAllVideoGrabber) drawDisplayAllVideoGrabber();
+}
+
+void ofApp::drawDisplayAllVideoGrabber(){
+    ofPoint origin = ofPoint(300, 30);
+    ofPoint size = ofPoint(240, 160);
+    float gapBetweenGrabber = 20;
+    float rectHeight = 5;
+
+    ofRect(origin.x, origin.y-rectHeight, size.x, rectHeight);
+    videoGrabberMain.draw(origin, size.x, size.y);
+
+    ofSetColor(ofColor::red);
+    ofRect(origin.x+1*(size.x+gapBetweenGrabber), origin.y-rectHeight, size.x, rectHeight);
+    ofSetColor(255);
+    videoGrabberR.draw(origin.x+1*(size.x+gapBetweenGrabber), origin.y, size.x, size.y);
+
+    ofSetColor(ofColor::green);
+    ofRect(origin.x+2*(size.x+gapBetweenGrabber), origin.y-rectHeight, size.x, rectHeight);
+    ofSetColor(255);
+    videoGrabberG.draw(origin.x+2*(size.x+gapBetweenGrabber), origin.y, size.x, size.y);
+
+    ofSetColor(ofColor::blue);
+    ofRect(origin.x+3*(size.x+gapBetweenGrabber), origin.y-rectHeight, size.x, rectHeight);
+    ofSetColor(255);
+    videoGrabberB.draw(origin.x+3*(size.x+gapBetweenGrabber), origin.y, size.x, size.y);
 }
 
 void ofApp::drawRGB(){
@@ -168,32 +234,65 @@ void ofApp::drawRGB(){
     fbo.begin();
     ofClear(0, 0, 0, 0);
     //R
-    shader.begin();
+    shaderLightLayer.begin();
     float colorValueR[] = {sliderR, 0.0, 0.0, 1.0};
-    shader.setUniform4fv("colorValue", colorValueR);
+    shaderLightLayer.setUniform4fv("colorValue", colorValueR);
     imageArrayRGB[0].draw(0, 0);
-    shader.end();
+    shaderLightLayer.end();
     
     //G
-    shader.begin();
+    shaderLightLayer.begin();
     float colorValueG[] = {0.0, sliderG, 0.0, 1.0};
-    shader.setUniform4fv("colorValue", colorValueG);
+    shaderLightLayer.setUniform4fv("colorValue", colorValueG);
     imageArrayRGB[1].draw(0, 0);
-    shader.end();
+    shaderLightLayer.end();
     
     //B
-    shader.begin();
+    shaderLightLayer.begin();
     float colorValueB[] = {0.0, 0.0, sliderB, 1.0};
-    shader.setUniform4fv("colorValue", colorValueB);
+    shaderLightLayer.setUniform4fv("colorValue", colorValueB);
     imageArrayRGB[2].draw(0, 0);
-    shader.end();
+    shaderLightLayer.end();
     
     fbo.end();
     fbo.draw(0, 0);
 }
 
+void ofApp::drawPixelDome(){
+    // draw pixel dome
+//    fbo.begin();
+//    ofClear(0, 0, 0, 0);
+//
+//    // draw R
+//    // R image
+//    ofImage imageR;
+//    imageR.setFromPixels(videoGrabberMain.getPixels(), videoGrabberMain.getWidth(), videoGrabberMain.getHeight(), OF_IMAGE_COLOR);
+//    imageR.mirror(false, true);
+//    // shader
+//    shaderLightLayer.begin();
+//    float colorValueR[] = {sliderR, 0.0, 0.0, 1.0};
+//    shaderLightLayer.setUniform4fv("colorValue", colorValueR);
+//    imageR.draw(0, 0);
+//    shaderLightLayer.end();
+    
+    // new method
+    fbo.begin();
+    ofClear(0, 0, 0, 0);
+    shaderPixelDome.begin();
+    shaderPixelDome.setUniformTexture("texR", videoGrabberR.getTextureReference(), 1);
+    shaderPixelDome.setUniformTexture("texG", videoGrabberG.getTextureReference(), 2);
+    shaderPixelDome.setUniformTexture("texB", videoGrabberB.getTextureReference(), 3);
+    shaderPixelDome.setUniformTexture("texMain", videoGrabberMain.getTextureReference(), 4);
+    videoGrabberMain.draw(0, 0, ofGetWidth(), ofGetHeight());
+    shaderPixelDome.end();
+    fbo.end();
+    //here use this R image for making with master image from main camera
+    
+    fbo.draw(0, 0);
+}
+
 void ofApp::flashDraw(){
-    shader.begin();
+    shaderLightLayer.begin();
     colorSelector++;
     colorSelector %= 3;
     float col[4];
@@ -219,9 +318,9 @@ void ofApp::flashDraw(){
         default:
             break;
     }
-    shader.setUniform4fv("colorValue", col);
+    shaderLightLayer.setUniform4fv("colorValue", col);
     image.draw(0, 0);
-    shader.end();
+    shaderLightLayer.end();
 }
 
 void ofApp::drawR(){
@@ -252,10 +351,6 @@ void ofApp::drawB(){
     fboB.end();
     ofSetColor(255, 255, 255, 255);
     fboB.draw(0, 0);
-}
-
-void ofApp::drawPixelDome(){
-
 }
 
 void ofApp::imageFilter(ofImage *img, ofImage *filteredImage, float r, float g, float b){
@@ -356,11 +451,11 @@ void ofApp::exit(){
 void ofApp::guiEvent(ofxUIEventArgs &e){
     string name = e.widget->getName();
     //    int kind = e.widget->getKind();
-    if (name == "camera R" && e.getButton()->getValue()) {
+    if (name == "Light Layer - camera R" && e.getButton()->getValue()) {
         takePicture(0);
-    }else if(name == "camera G" && e.getButton()->getValue()){
+    }else if(name == "Light Layer - camera G" && e.getButton()->getValue()){
         takePicture(1);
-    }else if (name == "camera B" && e.getButton()->getValue()){
+    }else if (name == "Light Layer - camera B" && e.getButton()->getValue()){
         takePicture(2);
     }else if (name == "draw debug"){
         if (e.getButton()->getValue()) {
@@ -368,8 +463,28 @@ void ofApp::guiEvent(ofxUIEventArgs &e){
         }else{
             TIME_SAMPLE_DISABLE();
         }
+    }else if(name == "change camera R" && e.getButton()->getValue()){
+        deviceIdR = (deviceIdR+1)%videoGrabberR.listDevices().size();
+        videoGrabberR.close();
+        videoGrabberR.setDeviceID(deviceIdR);
+        videoGrabberR.initGrabber(cameraWidth, cameraHeight);
+        ofLogNotice("\ncamera R:"+ofToString(deviceIdR)+"\ncamera G:"+ofToString(deviceIdG)+"\ncamera B:"+ofToString(deviceIdB)+"\ncamera Main:"+ofToString(deviceIdMain));
+    }else if(name == "change camera G"){
+        deviceIdG = (deviceIdG+1)%videoGrabberG.listDevices().size();
+        videoGrabberG.close();
+        videoGrabberG.setDeviceID(deviceIdG);
+        videoGrabberG.initGrabber(cameraWidth, cameraHeight);
+    }else if(name == "change camera B"){
+        deviceIdB = (deviceIdB+1)%videoGrabberB.listDevices().size();
+        videoGrabberB.close();
+        videoGrabberB.setDeviceID(deviceIdB);
+        videoGrabberB.initGrabber(cameraWidth, cameraHeight);
+    }else if(name == "change camera Main"){
+        deviceIdMain = (deviceIdMain+1)%videoGrabberMain.listDevices().size();
+        videoGrabberMain.close();
+        videoGrabberMain.setDeviceID(deviceIdMain);
+        videoGrabberMain.initGrabber(cameraWidth, cameraHeight);
     }
-    
     
     //    if(name == "draw R"){
     //        ofxUIToggle *toggle = (ofxUIToggle *) e.getToggle();
@@ -387,6 +502,6 @@ void ofApp::guiEvent(ofxUIEventArgs &e){
 }
 
 void ofApp::takePicture(int RGBID){
-    imageArrayRGB[RGBID].setFromPixels(videoGrabber.getPixels(), videoGrabber.getWidth(), videoGrabber.getHeight(), OF_IMAGE_COLOR);
+    imageArrayRGB[RGBID].setFromPixels(videoGrabberMain.getPixels(), videoGrabberMain.getWidth(), videoGrabberMain.getHeight(), OF_IMAGE_COLOR);
     imageArrayRGB[RGBID].mirror(false, true);
 }

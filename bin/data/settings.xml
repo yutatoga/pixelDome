@@ -1,37 +1,37 @@
 <Widget>
     <Kind>2</Kind>
     <Name>draw R</Name>
-    <Value>0</Value>
+    <Value>1</Value>
 </Widget>
 <Widget>
     <Kind>2</Kind>
     <Name>draw G</Name>
-    <Value>0</Value>
+    <Value>1</Value>
 </Widget>
 <Widget>
     <Kind>2</Kind>
     <Name>draw B</Name>
-    <Value>0</Value>
+    <Value>1</Value>
 </Widget>
 <Widget>
     <Kind>2</Kind>
     <Name>draw debug</Name>
-    <Value>1</Value>
+    <Value>0</Value>
 </Widget>
 <Widget>
     <Kind>4</Kind>
     <Name>color R</Name>
-    <Value>0.985221624</Value>
+    <Value>1.000000000</Value>
 </Widget>
 <Widget>
     <Kind>4</Kind>
     <Name>color G</Name>
-    <Value>0.985221624</Value>
+    <Value>1.000000000</Value>
 </Widget>
 <Widget>
     <Kind>4</Kind>
     <Name>color B</Name>
-    <Value>0.985221624</Value>
+    <Value>1.000000000</Value>
 </Widget>
 <Widget>
     <Kind>2</Kind>
@@ -40,7 +40,7 @@
 </Widget>
 <Widget>
     <Kind>2</Kind>
-    <Name>draw RGB</Name>
+    <Name>Light Layer - draw RGB</Name>
     <Value>0</Value>
 </Widget>
 <Widget>
@@ -51,5 +51,10 @@
 <Widget>
     <Kind>2</Kind>
     <Name>draw pixel dome</Name>
-    <Value>0</Value>
+    <Value>1</Value>
+</Widget>
+<Widget>
+    <Kind>2</Kind>
+    <Name>videoGrabber RGB</Name>
+    <Value>1</Value>
 </Widget>
