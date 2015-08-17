@@ -27,10 +27,12 @@ class ofApp : public ofBaseApp{
     void drawG();
     void drawB();
     void drawRGB();
-    void drawPixelDome();
+    void drawPixelDome1(ofTexture& textureMain, ofTexture& textureR, ofTexture& textureG, ofTexture& textureB, float x, float y, float width, float height);
+    void drawPixelDome2(ofTexture& textureMain, ofTexture& textureR, ofTexture& textureG, ofTexture& textureB, float x, float y, float width, float height);
     void drawDebug();
     void imageFilter(ofImage *img, ofImage *filteredImage, float r, float g, float b);
     void drawDisplayAllVideoGrabber();
+    void drawDisplayAllVideoPlayer();
     
     //ofxUI
     void exit();
@@ -42,19 +44,18 @@ class ofApp : public ofBaseApp{
     ofFbo fboR, fboG, fboB, fbo;
     ofImage image;
     ofImage imageArrayRGB[3];
-    ofShader shaderLightLayer, shaderPixelDome;
+    ofShader shaderLightLayer, shaderPixelDome1, shaderPixelDome2;
     int colorSelector;
     
     //ofxUI
     ofxUICanvas *gui;
-    bool toggleDrawR, toggleDrawG, toggleDrawB, toggleDrawDebug, toggleDrawCamera, buttonCameraR, buttonCameraG, buttonCameraB, toggleDrawRGB,toggleProjectionRGB, togglePixelDome, toggleDisplayAllVideoGrabber, changeCameraForVideoGrabberMain, changeCameraForVideoGrabberR, changeCameraForVideoGrabberG, changeCameraForVideoGrabberB;
-    float sliderR, sliderG, sliderB;
-    
+    bool toggleDrawR, toggleDrawG, toggleDrawB, toggleDrawDebug, toggleDrawCamera, buttonCameraR, buttonCameraG, buttonCameraB, toggleDrawRGB,toggleProjectionRGB, togglePixelDome1, togglePixelDome2, toggleDisplayAllVideoGrabber, toggleDisplayAllVideoPlayer, changeCameraForVideoGrabberMain, changeCameraForVideoGrabberR, changeCameraForVideoGrabberG, changeCameraForVideoGrabberB, toggleDebugVideo;
+    float sliderR, sliderG, sliderB, valueChangerR, valueChangerG, valueChangerB;
     //camera
     int cameraWidth;
     int cameraHeight;
-    ofVideoGrabber videoGrabberR, videoGrabberG, videoGrabberB, videoGrabberMain;
-    int deviceIdR, deviceIdG, deviceIdB, deviceIdMain;
+    ofVideoGrabber videoGrabberMain, videoGrabberR, videoGrabberG, videoGrabberB;
+    int deviceIdMain, deviceIdR, deviceIdG, deviceIdB;
     
     //enable projection installation
 //    bool enableProjectionRGB;
@@ -64,4 +65,7 @@ class ofApp : public ofBaseApp{
     int projectionColorID;
     
     bool cursorVisible;
+    
+    // debug
+    ofVideoPlayer videoPlayerMain, videoPlayerR, videoPlayerG, videoPlayerB;
 };

@@ -1,0 +1,9 @@
+★1
+shader150を使うときは、
+main.cppに
+
+ofSetupOpenGL
+の前に以下を追加
+ofSetCurrentRenderer(ofGLProgrammableRenderer::TYPE);
+
+★2

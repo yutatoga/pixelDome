@@ -65,19 +65,27 @@ void ofApp::setup(){
     // Pixel Dome
     gui->addSpacer();
     gui->addLabel("Pixel Dome");
-    togglePixelDome = false;
-    gui->addToggle("draw pixel dome", &togglePixelDome);
+    togglePixelDome1 = false;
+    gui->addToggle("draw pixel dome 1", &togglePixelDome1);
+    togglePixelDome2 = false;
+    gui->addToggle("draw pixel dome 2", &togglePixelDome2);
     toggleDisplayAllVideoGrabber = false;
-    gui->addToggle("videoGrabber RGB", &toggleDisplayAllVideoGrabber);
+    gui->addToggle("display all videoGrabber", &toggleDisplayAllVideoGrabber);
+    toggleDisplayAllVideoPlayer = false;
+    gui->addToggle("display all videoPlayer", &toggleDisplayAllVideoPlayer);
     changeCameraForVideoGrabberMain = false;
     gui->addButton("change camera Main", changeCameraForVideoGrabberMain);
     changeCameraForVideoGrabberR = false;
     gui->addButton("change camera R", changeCameraForVideoGrabberR);
+    gui->addSlider("value changer R", 0.0, 10.0, &valueChangerR);
     changeCameraForVideoGrabberG = false;
     gui->addButton("change camera G", changeCameraForVideoGrabberG);
+    gui->addSlider("value changer G", 0.0, 10.0, &valueChangerG);
     changeCameraForVideoGrabberB = false;
     gui->addButton("change camera B", changeCameraForVideoGrabberB);
-    
+    gui->addSlider("value changer B", 0.0, 10.0, &valueChangerB);
+    toggleDebugVideo = false;
+    gui->addToggle("use video instead of camera", &toggleDebugVideo);
     // command explanatin
     gui->addSpacer();
     gui->addLabel("press c: hide/show cursor", OFX_UI_FONT_SMALL);
@@ -94,8 +102,12 @@ void ofApp::setup(){
     ofLogNotice("shader not found: TARGET_OPENGLES");
 #else
     if(ofIsGLProgrammableRenderer()){
+        // light layer
         shaderLightLayer.load("shadersGL3_lightLayer/shader");
-        shaderPixelDome.load("shadersGL3_pixelDome/shader");
+        // pixel dome - calculate color in the shader
+        shaderPixelDome1.load("shadersGL3_pixelDome1/shader");
+        // pixel dome - draw three times on fbo
+        shaderPixelDome2.load("shadersGL3_pixelDome2/shader");
     }else{
         //        shader.load("shadersGL2/shader");
         ofLogNotice("shader not found: shadersGL2");
@@ -107,6 +119,7 @@ void ofApp::setup(){
     colorSelector = 0;
     
     ofEnableBlendMode(OF_BLENDMODE_ADD);
+
     
     //camera
     cameraWidth = ofGetWidth();
@@ -122,46 +135,68 @@ void ofApp::setup(){
     }
     
     // initialize videograbber
+    deviceIdMain = 0;
     deviceIdR = 0;
-    deviceIdG = 1;
-    deviceIdB = 2;
-    deviceIdMain = 3;
-    
+    deviceIdG = 0;
+    deviceIdB = 0;
+
+    // Main
+    videoGrabberMain.setDeviceID(deviceIdMain);
+    videoGrabberMain.initGrabber(cameraWidth, cameraHeight);
     // R
     videoGrabberR.setDeviceID(deviceIdR);
-    videoGrabberR.setDesiredFrameRate(60);
     videoGrabberR.initGrabber(cameraWidth, cameraHeight);
     // G
     videoGrabberG.setDeviceID(deviceIdG);
-    videoGrabberG.setDesiredFrameRate(60);
     videoGrabberG.initGrabber(cameraWidth, cameraHeight);
     // B
     videoGrabberB.setDeviceID(deviceIdB);
-    videoGrabberB.setDesiredFrameRate(60);
     videoGrabberB.initGrabber(cameraWidth, cameraHeight);
-    // Main
-    videoGrabberMain.setDeviceID(deviceIdMain);
-    videoGrabberMain.setDesiredFrameRate(60);
-    videoGrabberMain.initGrabber(cameraWidth, cameraHeight);
     
     lastShootingTime = ofGetElapsedTimef();
     flashTime = 0.1;
     waitingTime = 3.0;
     projectionColorID = 0;
+    
+    // debug with video
+    // - Main
+    videoPlayerMain.loadMovie("movies/main.mp4");
+    videoPlayerMain.setLoopState(OF_LOOP_NORMAL);
+    videoPlayerMain.play();
+    // - R
+    videoPlayerR.loadMovie("movies/r.mp4");
+    videoPlayerR.setLoopState(OF_LOOP_NORMAL);
+    videoPlayerR.play();
+    // - G
+    videoPlayerG.loadMovie("movies/g.mp4");
+    videoPlayerG.setLoopState(OF_LOOP_NORMAL);
+    videoPlayerG.play();
+    // - B
+    videoPlayerB.loadMovie("movies/b.mp4");
+    videoPlayerB.setLoopState(OF_LOOP_NORMAL);
+    videoPlayerB.play();
 }
 
 
 //--------------------------------------------------------------
 void ofApp::update(){
     //update videograbber
+    videoGrabberMain.update();
     videoGrabberR.update();
     videoGrabberG.update();
     videoGrabberB.update();
-    videoGrabberMain.update();
+    
+    if (toggleDebugVideo) {
+        videoPlayerMain.update();
+        videoPlayerR.update();
+        videoPlayerG.update();
+        videoPlayerB.update();
+    }
 }
 
 //--------------------------------------------------------------
 void ofApp::draw(){
+    ofEnableBlendMode(OF_BLENDMODE_ADD);
     if (toggleProjectionRGB) {
         if (ofGetElapsedTimef()-lastShootingTime > waitingTime) {
             // draw color
@@ -199,9 +234,28 @@ void ofApp::draw(){
     if (toggleDrawG) drawG();
     if (toggleDrawB) drawB();
     if (toggleDrawRGB) drawRGB();
-    if (togglePixelDome) drawPixelDome();
+
+    ofPoint origin = ofPoint(300, 300);
+    ofPoint size = ofPoint(240, 160);
+
+    
+    if (togglePixelDome1){
+        if (toggleDebugVideo) {
+            drawPixelDome1(videoPlayerMain.getTextureReference(), videoPlayerR.getTextureReference(), videoPlayerG.getTextureReference(), videoPlayerB.getTextureReference(), origin.x, origin.y, size.x, size.y);
+        }else{
+            drawPixelDome1(videoGrabberMain.getTextureReference(), videoGrabberR.getTextureReference(), videoGrabberG.getTextureReference(), videoGrabberB.getTextureReference(), 100, 600, size.x, size.y);
+        }
+    }
+    if (togglePixelDome2){
+        if (toggleDebugVideo) {
+            drawPixelDome2(videoPlayerMain.getTextureReference(), videoPlayerR.getTextureReference(), videoPlayerG.getTextureReference(), videoPlayerB.getTextureReference(), origin.x+size.x+20, origin.y, size.x, size.y);
+        }else{
+            drawPixelDome2(videoGrabberMain.getTextureReference(), videoGrabberR.getTextureReference(), videoGrabberG.getTextureReference(), videoGrabberB.getTextureReference(),500, 600, size.x, size.y);
+        }
+    }
     if (toggleDrawDebug) drawDebug();
     if (toggleDisplayAllVideoGrabber) drawDisplayAllVideoGrabber();
+    if (toggleDisplayAllVideoPlayer) drawDisplayAllVideoPlayer();
 }
 
 void ofApp::drawDisplayAllVideoGrabber(){
@@ -210,24 +264,60 @@ void ofApp::drawDisplayAllVideoGrabber(){
     float gapBetweenGrabber = 20;
     float rectHeight = 5;
 
+    // Main
+    ofSetColor(ofColor::white);
     ofRect(origin.x, origin.y-rectHeight, size.x, rectHeight);
-    videoGrabberMain.draw(origin, size.x, size.y);
-
+    ofSetColor(255);
+    videoGrabberMain.draw(origin.x, origin.y, size.x, size.y);
+    ofDrawBitmapString(ofToString(deviceIdMain)+": "+ofToString(videoGrabberMain.listDevices()[deviceIdMain].deviceName), origin.x, origin.y+size.y+20);
+    // R
     ofSetColor(ofColor::red);
     ofRect(origin.x+1*(size.x+gapBetweenGrabber), origin.y-rectHeight, size.x, rectHeight);
     ofSetColor(255);
     videoGrabberR.draw(origin.x+1*(size.x+gapBetweenGrabber), origin.y, size.x, size.y);
-
+    ofDrawBitmapString(ofToString(deviceIdR)+": "+ofToString(videoGrabberMain.listDevices()[deviceIdR].deviceName), origin.x+1*(size.x+gapBetweenGrabber), origin.y+size.y+20);
+    // G
     ofSetColor(ofColor::green);
     ofRect(origin.x+2*(size.x+gapBetweenGrabber), origin.y-rectHeight, size.x, rectHeight);
     ofSetColor(255);
     videoGrabberG.draw(origin.x+2*(size.x+gapBetweenGrabber), origin.y, size.x, size.y);
-
+    ofDrawBitmapString(ofToString(deviceIdG)+": "+ofToString(videoGrabberMain.listDevices()[deviceIdG].deviceName), origin.x+2*(size.x+gapBetweenGrabber), origin.y+size.y+20);
+    // B
     ofSetColor(ofColor::blue);
     ofRect(origin.x+3*(size.x+gapBetweenGrabber), origin.y-rectHeight, size.x, rectHeight);
     ofSetColor(255);
     videoGrabberB.draw(origin.x+3*(size.x+gapBetweenGrabber), origin.y, size.x, size.y);
+    ofDrawBitmapString(ofToString(deviceIdB)+": "+ofToString(videoGrabberMain.listDevices()[deviceIdB].deviceName), origin.x+3*(size.x+gapBetweenGrabber), origin.y+size.y+20);
 }
+
+void ofApp::drawDisplayAllVideoPlayer(){
+    ofPoint origin = ofPoint(300, 330);
+    ofPoint size = ofPoint(240, 160);
+    float gapBetweenGrabber = 20;
+    float rectHeight = 5;
+    
+    // Main -- 
+    ofSetColor(ofColor::white);
+    ofRect(origin.x, origin.y-rectHeight, size.x, rectHeight);
+    ofSetColor(255);
+    videoPlayerMain.draw(origin, size.x, size.y);
+    // R
+    ofSetColor(ofColor::red);
+    ofRect(origin.x+1*(size.x+gapBetweenGrabber), origin.y-rectHeight, size.x, rectHeight);
+    ofSetColor(255);
+    videoPlayerR.draw(origin.x+1*(size.x+gapBetweenGrabber), origin.y, size.x, size.y);
+    // G
+    ofSetColor(ofColor::green);
+    ofRect(origin.x+2*(size.x+gapBetweenGrabber), origin.y-rectHeight, size.x, rectHeight);
+    ofSetColor(255);
+    videoPlayerG.draw(origin.x+2*(size.x+gapBetweenGrabber), origin.y, size.x, size.y);
+    // B
+    ofSetColor(ofColor::blue);
+    ofRect(origin.x+3*(size.x+gapBetweenGrabber), origin.y-rectHeight, size.x, rectHeight);
+    ofSetColor(255);
+    videoPlayerB.draw(origin.x+3*(size.x+gapBetweenGrabber), origin.y, size.x, size.y);
+}
+
 
 void ofApp::drawRGB(){
     // draw light layer
@@ -258,7 +348,7 @@ void ofApp::drawRGB(){
     fbo.draw(0, 0);
 }
 
-void ofApp::drawPixelDome(){
+void ofApp::drawPixelDome1(ofTexture& textureMain, ofTexture& textureR, ofTexture& textureG, ofTexture& textureB, float x, float y, float width, float height){
     // draw pixel dome
 //    fbo.begin();
 //    ofClear(0, 0, 0, 0);
@@ -278,16 +368,96 @@ void ofApp::drawPixelDome(){
     // new method
     fbo.begin();
     ofClear(0, 0, 0, 0);
-    shaderPixelDome.begin();
-    shaderPixelDome.setUniformTexture("texR", videoGrabberR.getTextureReference(), 1);
-    shaderPixelDome.setUniformTexture("texG", videoGrabberG.getTextureReference(), 2);
-    shaderPixelDome.setUniformTexture("texB", videoGrabberB.getTextureReference(), 3);
-    shaderPixelDome.setUniformTexture("texMain", videoGrabberMain.getTextureReference(), 4);
-    videoGrabberMain.draw(0, 0, ofGetWidth(), ofGetHeight());
-    shaderPixelDome.end();
+    shaderPixelDome1.begin();
+    shaderPixelDome1.setUniformTexture("texMain", textureMain, 0);
+    shaderPixelDome1.setUniformTexture("texR", textureR, 1);
+    shaderPixelDome1.setUniform1f("valueChangerR", valueChangerR);
+    shaderPixelDome1.setUniformTexture("texG", textureG, 2);
+    shaderPixelDome1.setUniform1f("valueChangerG", valueChangerG);
+    shaderPixelDome1.setUniformTexture("texB", textureB, 3);
+    shaderPixelDome1.setUniform1f("valueChangerB", valueChangerB);
+    if (toggleDebugVideo) {
+        videoPlayerMain.draw(x, y, width, height);
+    }else{
+        videoGrabberMain.draw(x, y, width, height);
+    }
+    shaderPixelDome1.end();
     fbo.end();
     //here use this R image for making with master image from main camera
     
+    fbo.draw(0, 0);
+}
+
+void ofApp::drawPixelDome2(ofTexture& textureMain, ofTexture& textureR, ofTexture& textureG, ofTexture& textureB, float x, float y, float width, float height){
+    fbo.begin();
+    ofClear(0, 0, 0, 0);
+
+    // color id: R = 1, G = 2, B = 3
+
+    //R
+    shaderPixelDome2.begin();
+    ofRect(400, 400, 100, 100);
+    shaderPixelDome2.setUniformTexture("texMain", textureMain, 0);
+    shaderPixelDome2.setUniformTexture("texR", textureR, 1);
+    shaderPixelDome2.setUniformTexture("texG", textureG, 2);
+    shaderPixelDome2.setUniformTexture("texB", textureB, 3);
+    shaderPixelDome2.setUniform1i("colorId", 1);
+    if (toggleDebugVideo) {
+        for (int i=0; i<5; i++) {
+            videoPlayerMain.draw(x, y, width, height);
+        }
+    }else{
+        videoGrabberMain.draw(x, y, width, height);
+    }
+    shaderPixelDome2.end();
+    
+    //G
+    shaderPixelDome2.begin();
+    ofRect(500, 500, 100, 100);
+    shaderPixelDome2.setUniformTexture("texMain", textureMain, 0);
+    shaderPixelDome2.setUniformTexture("texR", textureR, 1);
+    shaderPixelDome2.setUniformTexture("texG", textureG, 2);
+    shaderPixelDome2.setUniformTexture("texB", textureB, 3);
+    shaderPixelDome2.setUniform1i("colorId", 2);
+    if (toggleDebugVideo) {
+        for (int i=0; i<5; i++) {
+            videoPlayerMain.draw(x, y, width, height);
+        }
+    }else{
+        videoGrabberMain.draw(x+50, y-50, width, height);
+    }
+    shaderPixelDome2.end();
+    
+    //B
+    shaderPixelDome2.begin();
+    ofRect(600, 600, 100, 100);
+    shaderPixelDome2.setUniformTexture("texMain", textureMain, 0);
+    shaderPixelDome2.setUniformTexture("texR", textureR, 1);
+    shaderPixelDome2.setUniformTexture("texG", textureG, 2);
+    shaderPixelDome2.setUniformTexture("texB", textureB, 3);
+    shaderPixelDome2.setUniform1i("colorId", 3);
+    if (toggleDebugVideo) {
+        for (int i = 0; i<5; i++) {
+            videoPlayerMain.draw(x, y, width, height);
+        }
+    }else{
+        videoGrabberMain.draw(x+50, y+50, width, height);
+    }
+    shaderPixelDome2.end();
+    
+    ofSetColor(255, 0, 0, 200);
+    ofCircle(1100, 100, 100);
+    
+    ofSetColor(0, 255, 0, 200);
+    ofCircle(1150, 100, 100);
+    
+    ofSetColor(0, 0, 255, 200);
+    ofCircle(1125, 150, 100);
+    
+    fbo.end();
+    //here use this R image for making with master image from main camera
+    
+    ofSetColor(255);
     fbo.draw(0, 0);
 }
 
@@ -468,22 +638,25 @@ void ofApp::guiEvent(ofxUIEventArgs &e){
         videoGrabberR.close();
         videoGrabberR.setDeviceID(deviceIdR);
         videoGrabberR.initGrabber(cameraWidth, cameraHeight);
-        ofLogNotice("\ncamera R:"+ofToString(deviceIdR)+"\ncamera G:"+ofToString(deviceIdG)+"\ncamera B:"+ofToString(deviceIdB)+"\ncamera Main:"+ofToString(deviceIdMain));
-    }else if(name == "change camera G"){
+        ofLogNotice("-----\ncamera Main:"+ofToString(deviceIdMain)+"\ncamera R:"+ofToString(deviceIdR)+"\ncamera G:"+ofToString(deviceIdG)+"\ncamera B:"+ofToString(deviceIdB)+"\n-----");
+    }else if(name == "change camera G" && e.getButton()->getValue()){
         deviceIdG = (deviceIdG+1)%videoGrabberG.listDevices().size();
         videoGrabberG.close();
         videoGrabberG.setDeviceID(deviceIdG);
         videoGrabberG.initGrabber(cameraWidth, cameraHeight);
-    }else if(name == "change camera B"){
+        ofLogNotice("\ncamera Main:"+ofToString(deviceIdMain)+"\ncamera R:"+ofToString(deviceIdR)+"\ncamera G:"+ofToString(deviceIdG)+"\ncamera B:"+ofToString(deviceIdB));
+    }else if(name == "change camera B" && e.getButton()->getValue()){
         deviceIdB = (deviceIdB+1)%videoGrabberB.listDevices().size();
         videoGrabberB.close();
         videoGrabberB.setDeviceID(deviceIdB);
         videoGrabberB.initGrabber(cameraWidth, cameraHeight);
-    }else if(name == "change camera Main"){
+        ofLogNotice("\ncamera Main:"+ofToString(deviceIdMain)+"\ncamera R:"+ofToString(deviceIdR)+"\ncamera G:"+ofToString(deviceIdG)+"\ncamera B:"+ofToString(deviceIdB));
+    }else if(name == "change camera Main" && e.getButton()->getValue()){
         deviceIdMain = (deviceIdMain+1)%videoGrabberMain.listDevices().size();
         videoGrabberMain.close();
         videoGrabberMain.setDeviceID(deviceIdMain);
         videoGrabberMain.initGrabber(cameraWidth, cameraHeight);
+        ofLogNotice("\ncamera Main:"+ofToString(deviceIdMain)+"\ncamera R:"+ofToString(deviceIdR)+"\ncamera G:"+ofToString(deviceIdG)+"\ncamera B:"+ofToString(deviceIdB));
     }
     
     //    if(name == "draw R"){

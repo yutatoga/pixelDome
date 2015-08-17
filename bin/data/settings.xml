@@ -50,11 +50,41 @@
 </Widget>
 <Widget>
     <Kind>2</Kind>
-    <Name>draw pixel dome</Name>
+    <Name>draw pixel dome 1</Name>
     <Value>1</Value>
 </Widget>
 <Widget>
     <Kind>2</Kind>
-    <Name>videoGrabber RGB</Name>
+    <Name>draw pixel dome 2</Name>
+    <Value>1</Value>
+</Widget>
+<Widget>
+    <Kind>2</Kind>
+    <Name>display all videoGrabber</Name>
+    <Value>1</Value>
+</Widget>
+<Widget>
+    <Kind>2</Kind>
+    <Name>display all videoPlayer</Name>
+    <Value>0</Value>
+</Widget>
+<Widget>
+    <Kind>4</Kind>
+    <Name>value changer R</Name>
+    <Value>2.758620739</Value>
+</Widget>
+<Widget>
+    <Kind>4</Kind>
+    <Name>value changer G</Name>
+    <Value>1.428571463</Value>
+</Widget>
+<Widget>
+    <Kind>4</Kind>
+    <Name>value changer B</Name>
+    <Value>2.216748714</Value>
+</Widget>
+<Widget>
+    <Kind>2</Kind>
+    <Name>use video instead of camera</Name>
     <Value>1</Value>
 </Widget>
